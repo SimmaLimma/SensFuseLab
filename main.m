@@ -68,6 +68,7 @@ pe = ndist(mean(ePair)',diag(var(ePair)));
 %plot(pe); title('Estimation of PDF of error')
 
 %% Creating sensor model
+% TODO: Make this tdoa1?
 %Model for config 1
 sm1 = exsensor('tdoa2',8,1,2);
 
@@ -144,25 +145,45 @@ sigrphat = sig(rphat,sampRate);
 
 %hold off
 
+
+
 %% Localization
 % Config 2 is choosen as preferred config (due to config analysis)
 
 % TODO: Make this into a function
 
-%Load config 1
+% Load config 2
 load('testconfig2.mat')
 
 % Calculating range [meter] from time [second].
 rphatC2 = 343 * tphat;
 
-% Location estimation with pairwise TDOA (all pairs) and config 2
-estLocC2 = loc(rphatC2, sm2, 'tdoa2');
+% Trajection estimation with pairwise TDOA (all pairs) and config 2
+%estTrajTDOA2 = loc(rphatC2, sm2, 'tdoa2');
 
+% Plotting trajectory
+%figure(4)
+%plot(estTrajTDOA2(1,:), estTrajTDOA2(2,:))
+%title('Estimated location for object; TDOA2 with all pairs used')
+
+% Comparing to ground truth
+%figure(5)
+%SFlabCompEstimGroundTruth(estTrajC2,micPos2)
+
+%% TODO: This loc alg. I have no idea how to use r0 and why it gets so big
+% Trajection estimation with NLS and Guass-Newton search
+sm2nls = exsensor('tdoa1',8,1,2);
+sm2nls.x0 = [startPos' 0.5]';
+sm2nls.th = micPos2(:);
+sm2nls.pe = diag(var(e));
+
+estTrajNls3d = loc(rphatC2, sm2nls, 'nlsGn');
 %%
+% Plotting trajectory
+figure(7)
 
-figure(4)
-plot(estLocC2(1,:), estLocC2(2,:))
-title('Estimated location for object; TDOA2 with all pairs used')
+plot(estTrajNls3d(1,:),estTrajNls3d(2,:))
+title('Estimated location for object; NLS with GN search used')
 
 
-
+%% Tracking
