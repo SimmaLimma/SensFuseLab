@@ -3,6 +3,7 @@ function  estimation = loc(rphat, sm, type)
 %   Location estimation with different methods
 %   Outputs location estimation for all time instances
 
+%% TDOA2
 if(type == 'tdoa2')
     
     %Store start pos
@@ -32,7 +33,7 @@ if(type == 'tdoa2')
         %Momentanues Sig object
         tmpSig = sig(rphatPair(tp,:));
         
-        %Estmation and update estimated sensmordel
+        %Estmation (NLS) and update estimated sensmordel
         shat = estimate(sm, tmpSig);
         sm.x0 = shat.x0;
         
@@ -40,15 +41,48 @@ if(type == 'tdoa2')
         estimation(:,tp) = shat.x0;
     end
     
-    
     %Reset start position
     sm.x0 = startPos;
 end
 
 
-
-% TODO: Remember to COPY sensmod object, since I think it is by reference
-
+%% NLS
+if(type == 'nlsGn')
+    
+    % Calc (estimated) measurement error
+    e = zeros(size(rphat));
+    meanrphat = mean(rphat')';
+    for mic = 1:8
+        e(:,mic) = rphat(:,mic) - meanrphat;
+    end
+    
+    %Store start pos
+    startVal = sm.x0;
+    
+    % Var for location estimation at each time instance
+    estimation = zeros(3,88);
+    
+    % Using NLS with Gauss-Newton search
+    for tp = 1:length(rphat)
+        tp
+        
+        % TODO: Find a way to call samples from SigObj
+        %Momentanues Sig object
+        tmpSig = sig(e(tp,:));
+        
+        %Estmation (NLS) and update estimated sensmordel
+        %Value for parameter 'thmask' taken from exercise 4.9
+        %Gauss-Newton search is default
+        shat = estimate(sm, tmpSig);
+        sm.x0 = shat.x0;
+        
+        %Updating output vector
+        estimation(:,tp) = shat.x0;
+    end
+    
+    %Reset start position
+    sm.x0 = startVal;
+end
 
 
 end
