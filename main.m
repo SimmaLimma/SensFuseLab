@@ -186,4 +186,31 @@ plot(estTrajNls3d(1,:),estTrajNls3d(2,:))
 title('Estimated location for object; NLS with GN search used')
 
 
-%% Tracking
+%% Choosing motion models
+
+% cv2d - Cartesian velocity in 2d
+m1 = exlti('cv2d', 1/2);
+
+% x and y for start position and 0 velocity (both directions)
+m1.x0 = [startPos; 0; 0];
+% TODO: Change P0?
+m.px0 = 0.1*eye(4);
+% TODO: Change pe
+m.pe = [1; 1];
+% TODO: Change
+m.pv = 0.1*eye(4);
+
+%Artificial measurements, using NLS GN
+measArt = sig(estTrajNls3d, 2);
+
+% Tracking using KF
+xhat11 = kalman(m1, estTrajNls3d);
+
+% Plotting result
+figure(8)
+xplot2(xhat,measArt, 'conf', 90 )
+
+
+% ctpvd - Coordinated turn, with polar velocity
+
+
