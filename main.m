@@ -53,6 +53,7 @@ end
 
 
 % Normalized histogram of e (code given by lab pm)
+%TODO: Loop this for each mic
 %[N, l] = hist(e ,20);
 %Wb=l(2)-l(1); % Bin  width
 %Ny = length(e); % Nr of  samples
@@ -114,15 +115,15 @@ sm1.pe = diag(var(ePair));
 sm2.pe = diag(var(ePair));
 
 %Plotting the configs
-figure(1)
-sm1.plot
-xlim([0 1.23])
-ylim([0 1])
+%figure(1)
+%sm1.plot
+%xlim([0 1.23])
+%ylim([0 1])
 
 %figure(2)
-sm2.plot
-xlim([0 1.23])
-ylim([0 1])
+%sm2.plot
+%xlim([0 1.23])
+%ylim([0 1])
 %% Analysis of model
 
 % TODO: Code below redudant?
@@ -131,19 +132,19 @@ sigrphat = sig(rphat,sampRate);
  
 % CRLB analysis. Uncomment for plot
 % TODO: Can we use another approach than TDOA2? (Since Hendeby said we had to use TDOA1 somewhere)
-figure(1)
-hold on
+%figure(1)
+%hold on
 %Empty y, limits set according to lab setup and calc of RMSE
-crlb2(sm1, [], 0:0.1:1.3, 0:0.1:1, [1 2], 'rmse'); 
-title('CRLB analysis of config 1')
+%crlb2(sm1, [], 0:0.1:1.3, 0:0.1:1, [1 2], 'rmse'); 
+%title('CRLB analysis of config 1')
 
-figure(2)
-hold on
+%figure(2)
+%hold on
 %Empty y, limits set according to lab setup and calc of RMSE
-crlb2(sm2, [], 0:0.1:1.3, 0:0.1:1, [1 2], 'rmse');  
-title('CRLB analysis of config 2')
+%crlb2(sm2, [], 0:0.1:1.3, 0:0.1:1, [1 2], 'rmse');  
+%title('CRLB analysis of config 2')
 
-hold off
+%hold off
 
 
 
@@ -159,16 +160,16 @@ load('testconfig2.mat')
 rphatC2 = 343 * tphat;
 
 % Trajection estimation with pairwise TDOA (all pairs) and config 2
-%estTrajTDOA2 = loc(rphatC2, sm2, 'tdoa2');
+estTrajTDOA2 = loc(rphatC2, sm2, 'tdoa2');
 
 % Plotting trajectory
-%figure(4)
-%plot(estTrajTDOA2(1,:), estTrajTDOA2(2,:))
-%title('Estimated location for object; TDOA2 with all pairs used')
+figure(4)
+plot(estTrajTDOA2(1,:), estTrajTDOA2(2,:))
+title('Estimated location for object; TDOA2 with all pairs used')
 
 % Comparing to ground truth
-%figure(5)
-%SFlabCompEstimGroundTruth(estTrajC2,micPos2)
+figure(5)
+SFlabCompEstimGroundTruth(estTrajTDOA2,micPos2)
 
 %% TODO: This loc alg. I have no idea how to use r0 and why it gets so big
 % Trajection estimation with NLS and Guass-Newton search
@@ -177,19 +178,24 @@ sm2nls.x0 = [startPos' 0.5]';
 sm2nls.th = micPos2(:);
 sm2nls.pe = diag(var(e));
 
-estTrajNls3d = loc(rphatC2, sm2nls, 'nlsGn');
+estTrajNlsGn = loc(rphatC2, sm2nls, 'nlsGn');
+
+
+% Comparing to ground truth
+figure(6)
+SFlabCompEstimGroundTruth(estTrajNlsGn(1:2, :),micPos2)
 %%
 % Plotting trajectory
 figure(7)
 
-plot(estTrajNls3d(1,:),estTrajNls3d(2,:))
+plot(estTrajNlsGn(1,:),estTrajNlsGn(2,:))
 title('Estimated location for object; NLS with GN search used')
 
 
 %% Choosing motion models
 
 % cv2d - Cartesian velocity in 2d
-m1 = exlti('cv2d', 0.5)
+m1 = exmotion('cv2d', 0.5)
 %mm1=addsensor(m1,sm2)
 
 %Artificial measurements from NLS GN Loc. alg.
