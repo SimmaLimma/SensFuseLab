@@ -114,15 +114,15 @@ sm1.pe = diag(var(ePair));
 sm2.pe = diag(var(ePair));
 
 %Plotting the configs
-%figure(1)
-%sm1.plot
-%xlim([0 1.23])
-%ylim([0 1])
+figure(1)
+sm1.plot
+xlim([0 1.23])
+ylim([0 1])
 
 %figure(2)
-%sm2.plot
-%xlim([0 1.23])
-%ylim([0 1])
+sm2.plot
+xlim([0 1.23])
+ylim([0 1])
 %% Analysis of model
 
 % TODO: Code below redudant?
@@ -131,19 +131,19 @@ sigrphat = sig(rphat,sampRate);
  
 % CRLB analysis. Uncomment for plot
 % TODO: Can we use another approach than TDOA2? (Since Hendeby said we had to use TDOA1 somewhere)
-%figure(1)
-%hold on
+figure(1)
+hold on
 %Empty y, limits set according to lab setup and calc of RMSE
-%crlb2(sm1, [], 0:0.1:1.3, 0:0.1:1, [1 2], 'rmse'); 
-%title('CRLB analysis of config 1')
+crlb2(sm1, [], 0:0.1:1.3, 0:0.1:1, [1 2], 'rmse'); 
+title('CRLB analysis of config 1')
 
-%figure(2)
-%hold on
+figure(2)
+hold on
 %Empty y, limits set according to lab setup and calc of RMSE
-%crlb2(sm2, [], 0:0.1:1.3, 0:0.1:1, [1 2], 'rmse');  
-%title('CRLB analysis of config 2')
+crlb2(sm2, [], 0:0.1:1.3, 0:0.1:1, [1 2], 'rmse');  
+title('CRLB analysis of config 2')
 
-%hold off
+hold off
 
 
 
@@ -189,26 +189,29 @@ title('Estimated location for object; NLS with GN search used')
 %% Choosing motion models
 
 % cv2d - Cartesian velocity in 2d
-m1 = exlti('cv2d', 1/2);
+m1 = exlti('cv2d', 0.5)
+%mm1=addsensor(m1,sm2)
+
+%Artificial measurements from NLS GN Loc. alg.
+artMeasVec = estTrajNls3d(1:2, :);
+
+artMeas = sig(estTrajNls3d(1:2, :)');
 
 % x and y for start position and 0 velocity (both directions)
-m1.x0 = [startPos; 0; 0];
+%m1.x0 = [startPos; 0; 0];
 % TODO: Change P0?
-m.px0 = 0.1*eye(4);
+%m1.px0 = 0.01*eye(4);
 % TODO: Change pe
-m.pe = [1; 1];
+%m1.pe = [1;1;1;1]';
 % TODO: Change
-m.pv = 0.1*eye(4);
-
-%Artificial measurements, using NLS GN
-measArt = sig(estTrajNls3d, 2);
+%m1.pv =000.1* eye(2);
 
 % Tracking using KF
-xhat11 = kalman(m1, estTrajNls3d);
+xhat11 = kalman(m1, artMeas);
 
 % Plotting result
 figure(8)
-xplot2(xhat,measArt, 'conf', 90 )
+xplot2(xhat11)
 
 
 % ctpvd - Coordinated turn, with polar velocity
