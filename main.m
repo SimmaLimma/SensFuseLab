@@ -53,7 +53,6 @@ end
 
 
 % Normalized histogram of e (code given by lab pm)
-%TODO: Loop this for each mic
 %[N, l] = hist(e ,20);
 %Wb=l(2)-l(1); % Bin  width
 %Ny = length(e); % Nr of  samples
@@ -115,15 +114,15 @@ sm1.pe = diag(var(ePair));
 sm2.pe = diag(var(ePair));
 
 %Plotting the configs
-%figure(1)
-%sm1.plot
-%xlim([0 1.23])
-%ylim([0 1])
+figure(1)
+sm1.plot
+xlim([0 1.23])
+ylim([0 1])
 
 %figure(2)
-%sm2.plot
-%xlim([0 1.23])
-%ylim([0 1])
+sm2.plot
+xlim([0 1.23])
+ylim([0 1])
 %% Analysis of model
 
 % TODO: Code below redudant?
@@ -160,16 +159,17 @@ load('testconfig2.mat')
 rphatC2 = 343 * tphat;
 
 % Trajection estimation with pairwise TDOA (all pairs) and config 2
-estTrajTDOA2 = loc(rphatC2, sm2, 'tdoa2');
+%estTrajTDOA2 = loc(rphatC2, sm2, 'tdoa2');
 
 % Plotting trajectory
-figure(4)
-plot(estTrajTDOA2(1,:), estTrajTDOA2(2,:))
-title('Estimated location for object; TDOA2 with all pairs used')
+%figure(4)
+%plot(estTrajTDOA2(1,:), estTrajTDOA2(2,:))
+%title('Estimated location for object; TDOA2 with all pairs used')
 
 % Comparing to ground truth
-figure(5)
-SFlabCompEstimGroundTruth(estTrajTDOA2,micPos2)
+%figure(5)
+%SFlabCompEstimGroundTruth(estTrajC2,micPos2)
+%title('Compared estimated location for object; TDOA2 with all pairs used')
 
 %% TODO: This loc alg. I have no idea how to use r0 and why it gets so big
 % Trajection estimation with NLS and Guass-Newton search
@@ -180,46 +180,81 @@ sm2nls.pe = diag(var(e));
 
 estTrajNlsGn = loc(rphatC2, sm2nls, 'nlsGn');
 
+% Plotting trajectory
+%figure(6)
+
+%plot(estTrajNls3Gn(1,:),estTrajNlsGn(2,:))
+%title('Estimated location for object; NLS with GN search used')
 
 % Comparing to ground truth
-figure(6)
-SFlabCompEstimGroundTruth(estTrajNlsGn(1:2, :),micPos2)
-%%
-% Plotting trajectory
-figure(7)
-
-plot(estTrajNlsGn(1,:),estTrajNlsGn(2,:))
-title('Estimated location for object; NLS with GN search used')
-
+%figure(7)
+%SFlabCompEstimGroundTruth(estTrajC2,micPos2)
+%title('Compared estimated location for object; NLS with GN search used')
 
 %% Choosing motion models
 
-% cv2d - Cartesian velocity in 2d
-m1 = exmotion('cv2d', 0.5)
-%mm1=addsensor(m1,sm2)
+% Model with Constant velocity in 2d - 'cv2d'
+mCv = exlti('cv2d', 0.5);
 
-%Artificial measurements from NLS GN Loc. alg.
-artMeasVec = estTrajNls3d(1:2, :);
+% Model with Constant acceleration in 2D - 'ca2d'
+mCa = exlti('ca2d', 0.5);
 
-artMeas = sig(estTrajNls3d(1:2, :)');
+% Estmating using Kalman Filter
 
-% x and y for start position and 0 velocity (both directions)
-%m1.x0 = [startPos; 0; 0];
-% TODO: Change P0?
-%m1.px0 = 0.01*eye(4);
-% TODO: Change pe
-%m1.pe = [1;1;1;1]';
-% TODO: Change
-%m1.pv =000.1* eye(2);
+% Artificial measurements from NLS GN Loc. alg.
+artMeasVec = estTrajNlsGn(1:2, :);
+artMeas = sig(estTrajNlsGn(1:2, :)');
 
-% Tracking using KF
-xhat11 = kalman(m1, artMeas);
+
+% Tuning the KF Filters for both models
+% TODO: How to tune Q properly? Is unit matrix a valid approach?
+mCv.Q = 0.5*mCv.Q;
+mCv.R = 1*eye(2);
+
+mCa.Q = 0.01*mCa.Q;
+mCa.R = 0.1*eye(2);
+
+
+% Tracking using KF (for both models)
+xhatCvKF = kalman(mCv, artMeas);
+xhatCaKF = kalman(mCa, artMeas);
 
 % Plotting result
 figure(8)
-xplot2(xhat11)
+xplot2(xhatCvKF)
+
+figure(9)
+xplot2(xhatCaKF)
+
+%% Estimating using non-linear filter
+
+% Selecting mic 8 as reference sensor,
+% since it has low variance and a comfortable place in the array
+refMic = 8;
+
+% Calculating TOA differences for all pairs including mic 8
+rphatPairOneRef = zeros(88,7);
+for pairInd = 1:length(mic)
+    
+    %Do not calcuate for pair ref mic with itself
+    if (pairInd ~= refMic)
+        rphatPairOneRef(:,pairInd) = rphat(:, refMic) - rphat(:, pairInd);
+    end
+end
+
+%TODO: I think adding sensors has to be done with "inline" and with "nl"
+%functions, to get correct sizes between f and h
+% Creating non-linear models with mics added as sensors
+mCvNltmp = exmotion('cv2d', 1/2);
+%TODO: input correct sensor model (not tdoa2, i.e.)
+mCvNl = addsensor(mCvNltmp, sm2);
 
 
-% ctpvd - Coordinated turn, with polar velocity
+% Tracking using EKF 
+rphatPairSig = sig(rphatPair);
+xhatCvEKF = ekf(mCvNl, artMeas);
 
 
+% Plotting result
+figure(10)
+xplot2(xhatCvEKF)
