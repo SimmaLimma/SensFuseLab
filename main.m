@@ -196,19 +196,16 @@ estTrajNlsGn = loc(rphatC2, sm2nls, 'nlsGn');
 % Model with Constant velocity in 2d - 'cv2d'
 mCv = exnl('cv2d', 0.5);
 
-% Model with Constant acceleration in 2D - 'ca2d', with added sensor
-mCaTmp = exmotion('ca2d', 0.5);
-mCa = addsensor(mCaTmp, sensormod('[1 0 0 0; 0 1 0 0]', [4 0 2 0]));
-
-% Model for TDOA with all pairs including reference mic
-smPosMeas = sensormod('[1 0 0 0; 0 1 0 0]', [4 0 2 0]);
-
-
-
+% Model with Coordinated turn and cartesian velocity
+mCtcv = exnl('ctcv2d', 0.5);
 
 % Artificial measurements from NLS GN Loc. alg.
 artMeasVec = estTrajNlsGn(1:2, :);
 artMeas = sig(estTrajNlsGn(1:2, :)');
+% With Polar coordinates
+
+[thTmp, rTmp] = cart2pol(estTrajNlsGn(1, :), estTrajNlsGn(2, :));
+artMeasPol = sig([rTmp; thTmp]');
 
 % Tuning the KF Filters for both models
 % Tuning Q for CV
@@ -221,28 +218,29 @@ mCv.px0 = 0.01*eye(4);
 mCv.x0 = [startPos; 0; 0];
 
 
-% Tuning Q for CA
-mCa.pv = 0.01*eye(6);
-% Tuning R for CA
-mCa.pe = 0.1*eye(2);
+% Tuning Q for Ctcv
+mCtcv.pv = 0.01*eye(5);
+% Tuning R for Ctcv
+mCtcv.pe = 0.1*eye(2);
 
 % Init parameters for model CA
-mCa.px0 = 0.01*eye(6);
-mCa.x0 = [startPos; 0; 0; 0; 0];
+mCtcv.px0 = 0.01*eye(5);
+% States are [pos_x, pos_y, vel_x, vel_y, ang_vel]
+mCtcv.x0 = [startPos; 0; 0; 0];
 
 
 % Tracking using KF (for both models)
 xhatCvKF = ekf(mCv, artMeas);
-xhatCaKF = ekf(mCa, artMeas);
+xhatCtcvKF = ekf(mCtcv, artMeasPol);
 
 % Plotting result
 figure(8)
 xplot2(xhatCvKF);
 title('Tracking with CV model and KF')
 
-%figure(9)
-%xplot2(xhatCaKF)
-%title('Tracking with CA model and KF')
+figure(9)
+xplot2(xhatCtcvKF)
+title('Tracking with CA model and KF')
 
 %TODO: Plot SFlabCompEstimGroundTruth(estTrajC2,micPos2) somehow
 
@@ -273,7 +271,7 @@ nn = [4 0 7 16];
 smOneRef = sensormod(h, nn);
 
 % Creating non-linear models with mics added as sensors
-mCvNltmp = exmotion('cv2d', 1/2);
+mCvNltmp = exnl('cv2d', 1/2);
 mCvNl = addsensor(mCvNltmp, smOneRef);
 
 % Tuning the EKF 
