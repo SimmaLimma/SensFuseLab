@@ -194,10 +194,10 @@ estTrajNlsGn = loc(rphatC2, sm2nls, 'nlsGn');
 %% Choosing motion models
 
 % Model with Constant velocity in 2d - 'cv2d'
-mCv = exlti('cv2d', 0.5);
+mCv = exnl('cv2d', 0.5);
 
 % Model with Constant acceleration in 2D - 'ca2d'
-mCa = exlti('ca2d', 0.5);
+mCa = exmotion('ca2d', 0.5);
 
 % Estmating using Kalman Filter
 
@@ -208,23 +208,34 @@ artMeas = sig(estTrajNlsGn(1:2, :)');
 
 % Tuning the KF Filters for both models
 % TODO: How to tune Q properly? Is unit matrix a valid approach?
-mCv.Q = 0.5*mCv.Q;
-mCv.R = 1*eye(2);
+% Tuning Q
+mCv.pv = 0.01*eye(4);
+% Tuning R
+mCv.pe = 0.1*eye(2);
 
-mCa.Q = 0.01*mCa.Q;
-mCa.R = 0.1*eye(2);
+% Init parameters for model CV
+mCv.px0 = 0.01*eye(4);
+mCv.x0 = [startPos; 0; 0];
+
+%TODO: Same as above for this model
+%mCa.pe = 0.01*mCa.pe;
+%mCa.pv = 0.1*eye(4);
 
 
 % Tracking using KF (for both models)
-xhatCvKF = kalman(mCv, artMeas);
-xhatCaKF = kalman(mCa, artMeas);
+xhatCvKF = ekf(mCv, artMeas);
+%xhatCaKF = ekf(mCa, artMeas);
 
 % Plotting result
-figure(8)
-xplot2(xhatCvKF)
+figure()
+xplot2(xhatCvKF);
+title('Tracking with CV model and KF')
 
-figure(9)
-xplot2(xhatCaKF)
+%figure(9)
+%xplot2(xhatCaKF)
+%title('Tracking with CA model and KF')
+
+%TODO: Plot SFlabCompEstimGroundTruth(estTrajC2,micPos2) somehow
 
 %% Estimating using non-linear filter
 
@@ -249,10 +260,17 @@ mCvNltmp = exmotion('cv2d', 1/2);
 %TODO: input correct sensor model (not tdoa2, i.e.)
 mCvNl = addsensor(mCvNltmp, sm2);
 
+% Init parameters for model CV
+mCvNl.px0 = 0.01*eye(4);
+mCvNl.x0 = [startPos; 0; 0];
+
+%Creating function for model
+h = '[x(1,:)]'
+
 
 % Tracking using EKF 
 rphatPairSig = sig(rphatPair);
-xhatCvEKF = ekf(mCvNl, artMeas);
+xhatCvEKF = ekf(mCvNl, );
 
 
 % Plotting result
