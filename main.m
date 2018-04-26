@@ -153,7 +153,7 @@ sigrphat = sig(rphat,sampRate);
 % TODO: Make this into a function
 
 % Load config 2
-load('testconfig2.mat')
+load('testconfig2New.mat')
 
 % Calculating range [meter] from time [second].
 rphatC2 = 343 * tphat;
@@ -196,38 +196,47 @@ estTrajNlsGn = loc(rphatC2, sm2nls, 'nlsGn');
 % Model with Constant velocity in 2d - 'cv2d'
 mCv = exnl('cv2d', 0.5);
 
-% Model with Constant acceleration in 2D - 'ca2d'
-mCa = exmotion('ca2d', 0.5);
+% Model with Constant acceleration in 2D - 'ca2d', with added sensor
+mCaTmp = exmotion('ca2d', 0.5);
+mCa = addsensor(mCaTmp, sensormod('[1 0 0 0; 0 1 0 0]', [4 0 2 0]));
 
-% Estmating using Kalman Filter
+% Model for TDOA with all pairs including reference mic
+smPosMeas = sensormod('[1 0 0 0; 0 1 0 0]', [4 0 2 0]);
+
+
+
 
 % Artificial measurements from NLS GN Loc. alg.
 artMeasVec = estTrajNlsGn(1:2, :);
 artMeas = sig(estTrajNlsGn(1:2, :)');
 
-
 % Tuning the KF Filters for both models
-% TODO: How to tune Q properly? Is unit matrix a valid approach?
-% Tuning Q
+% Tuning Q for CV
 mCv.pv = 0.01*eye(4);
-% Tuning R
+% Tuning R for CV
 mCv.pe = 0.1*eye(2);
 
 % Init parameters for model CV
 mCv.px0 = 0.01*eye(4);
 mCv.x0 = [startPos; 0; 0];
 
-%TODO: Same as above for this model
-%mCa.pe = 0.01*mCa.pe;
-%mCa.pv = 0.1*eye(4);
+
+% Tuning Q for CA
+mCa.pv = 0.01*eye(6);
+% Tuning R for CA
+mCa.pe = 0.1*eye(2);
+
+% Init parameters for model CA
+mCa.px0 = 0.01*eye(6);
+mCa.x0 = [startPos; 0; 0; 0; 0];
 
 
 % Tracking using KF (for both models)
 xhatCvKF = ekf(mCv, artMeas);
-%xhatCaKF = ekf(mCa, artMeas);
+xhatCaKF = ekf(mCa, artMeas);
 
 % Plotting result
-figure()
+figure(8)
 xplot2(xhatCvKF);
 title('Tracking with CV model and KF')
 
@@ -245,33 +254,42 @@ refMic = 8;
 
 % Calculating TOA differences for all pairs including mic 8
 rphatPairOneRef = zeros(88,7);
-for pairInd = 1:length(mic)
+for pairInd = 1:mic
     
     %Do not calcuate for pair ref mic with itself
     if (pairInd ~= refMic)
-        rphatPairOneRef(:,pairInd) = rphat(:, refMic) - rphat(:, pairInd);
+        rphatPairOneRef(:,pairInd) = rphatC2(:, refMic) - rphatC2(:, pairInd);
     end
 end
+rphatPairOneRefSig = sig(rphatPairOneRef);
 
-%TODO: I think adding sensors has to be done with "inline" and with "nl"
-%functions, to get correct sizes between f and h
+%Creating function for model
+h = char('[sqrt((x(1,:)-th(15)).^2+(x(2,:)-th(16)).^2) - sqrt((x(1,:)-th(1)).^2+(x(2,:)-th(2)).^2); sqrt((x(1,:)-th(15)).^2+(x(2,:)-th(16)).^2) - sqrt((x(1,:)-th(3)).^2+(x(2,:)-th(4)).^2); sqrt((x(1,:)-th(15)).^2+(x(2,:)-th(16)).^2) - sqrt((x(1,:)-th(5)).^2+(x(2,:)-th(6)).^2); sqrt((x(1,:)-th(15)).^2+(x(2,:)-th(16)).^2) - sqrt((x(1,:)-th(7)).^2+(x(2,:)-th(8)).^2); sqrt((x(1,:)-th(15)).^2+(x(2,:)-th(16)).^2) - sqrt((x(1,:)-th(9)).^2+(x(2,:)-th(10)).^2); sqrt((x(1,:)-th(15)).^2+(x(2,:)-th(16)).^2) - sqrt((x(1,:)-th(11)).^2+(x(2,:)-th(12)).^2); sqrt((x(1,:)-th(15)).^2+(x(2,:)-th(16)).^2) - sqrt((x(1,:)-th(13)).^2+(x(2,:)-th(14)).^2); ]');
+    
+% Dimension (nn = [nx nu ny nth])
+nn = [4 0 7 16];
+
+% Model for TDOA with all pairs including reference mic
+smOneRef = sensormod(h, nn);
+
 % Creating non-linear models with mics added as sensors
 mCvNltmp = exmotion('cv2d', 1/2);
-%TODO: input correct sensor model (not tdoa2, i.e.)
-mCvNl = addsensor(mCvNltmp, sm2);
+mCvNl = addsensor(mCvNltmp, smOneRef);
+
+% Tuning the EKF 
+% Tuning Q
+mCvNl.pv = 0.001*eye(4);
+% Tuning R
+mCvNl.pe = diag(var(rphatPairOneRef));
 
 % Init parameters for model CV
 mCvNl.px0 = 0.01*eye(4);
 mCvNl.x0 = [startPos; 0; 0];
-
-%Creating function for model
-h = '[x(1,:)]'
-
+mCvNl.th = micPos2(:);
 
 % Tracking using EKF 
 rphatPairSig = sig(rphatPair);
-xhatCvEKF = ekf(mCvNl, );
-
+xhatCvEKF = ekf(mCvNl, rphatPairOneRefSig);
 
 % Plotting result
 figure(10)
