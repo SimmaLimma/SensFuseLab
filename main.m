@@ -52,12 +52,29 @@ end
 %bar(l, N/(Ny*Wb)); title('Normalized histogram of error')
 
 %% Comparison of noise
-pe = ndist(mean(ePair)',diag(var(ePair))); 
+% TODO: Fix code that is baaaad
+%pe = ndist(mean(ePair)',diag(var(ePair))); 
 
 %TODO: Make plot work. Maybe use a for loop?
 %Uncomment for distribution of pe
-%figure()
+figure(3)
 %plot(pe); title('Estimation of PDF of error')
+
+for micInd =[1:8]
+    [N, l] = hist(e(:,micInd),20);
+    Wb= l(2)-l(1);
+    Ny = 88;
+    subplot(2,4,micInd)
+    bar(l, N/(Ny*Wb));
+    hold on;
+    pe = ndist(mean(e(:,micInd))', diag(var(e(:,micInd))));
+    plot(pe);
+    titleInd = int2str(micInd);
+    pdfTitle = strcat('PDF for e; mic ', titleInd);
+    title(pdfTitle);
+end
+
+hold off
 
 %% Creating sensor model
 % TODO: Make this tdoa1?
