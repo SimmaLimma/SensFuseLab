@@ -65,12 +65,11 @@ end
 hold off
 
 %% Creating sensor model
-% TODO: Make this tdoa1?
 %Model for config 1
-sm1 = exsensor('tdoa2',8,1,2);
+sm1 = exsensor('tdoa1',8,1,2);
 
 %Model for config 2
-sm2 = exsensor('tdoa2',8,1,2);
+sm2 = exsensor('tdoa1',8,1,2);
 
 %Start position of robot (at time instance 0)
 startPos = [0.383; 0.095];
@@ -100,12 +99,12 @@ sm1.th = micPos1(:);
 sm2.th = micPos2(:);
 
 %Setting inital position of the robot
-sm1.x0 = startPos;
-sm2.x0 = startPos;
+sm1.x0 = [startPos; 0];
+sm2.x0 = [startPos; 0];
 
 % Setting PDF for measurement noise
-sm1.pe = diag(var(ePair));
-sm2.pe = diag(var(ePair));
+sm1.pe = diag(var(e));
+sm2.pe = diag(var(e));
 
 %Plotting the configs
 figure(1)
@@ -113,7 +112,7 @@ sm1.plot
 xlim([0 1.23])
 ylim([0 1])
 
-%figure(2)
+figure(2)
 sm2.plot
 xlim([0 1.23])
 ylim([0 1])
@@ -123,7 +122,6 @@ ylim([0 1])
 sigrphat = sig(rphat,sampRate);
  
 % CRLB analysis. Uncomment for plot
-% TODO: Can we use another approach than TDOA2? (Since Hendeby said we had to use TDOA1 somewhere)
 figure(1)
 hold on
 %Empty y, limits set according to lab setup and calc of RMSE
@@ -149,8 +147,14 @@ load('testconfig2New.mat')
 % Calculating range [meter] from time [second].
 rphatC2 = 343 * tphat;
 
+%Creating sensor model for pairwise TDOA (all pairs) and config 2
+sm2tdoa2 = exsensor('tdoa2',8,1,2);
+sm2tdoa2.th = micPos2(:);
+sm2tdoa2.pe = diag(var(ePair));
+sm2tdoa2.x0 = startPos;
+
 % Trajection estimation with pairwise TDOA (all pairs) and config 2
-estTrajTDOA2 = loc(rphatC2, sm2, 'tdoa2');
+estTrajTDOA2 = loc(rphatC2, sm2tdoa2, 'tdoa2');
 
 % Plotting trajectory
 figure(4)
@@ -186,9 +190,9 @@ title('NLS with GN search used')
 % Model with Constant velocity in 2d - 'cv2d'
 mCv = exnl('cv2d', 0.5);
 
-% Model with Coordinated turn and cartesian velocity
+% Model with Coordinated turn and cartesian velocity and measuring 
+% cartesian coordinates
 mCtcv = exnl('ctcv2d', 0.5);
-% TODO: Add cartesian measurements instead of polar
 
 % Artificial measurements from NLS GN Loc. alg.
 artMeasVec = estTrajNlsGn(1:2, :);
