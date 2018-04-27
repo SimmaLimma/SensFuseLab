@@ -44,21 +44,9 @@ for i = 1:7
 end
 
 
-% Normalized histogram of e (code given by lab pm)
-%[N, l] = hist(e ,20);
-%Wb=l(2)-l(1); % Bin  width
-%Ny = length(e); % Nr of  samples
-%figure()
-%bar(l, N/(Ny*Wb)); title('Normalized histogram of error')
 
 %% Comparison of noise
-% TODO: Fix code that is baaaad
-%pe = ndist(mean(ePair)',diag(var(ePair))); 
-
-%TODO: Make plot work. Maybe use a for loop?
-%Uncomment for distribution of pe
 figure(3)
-%plot(pe); title('Estimation of PDF of error')
 
 for micInd =[1:8]
     [N, l] = hist(e(:,micInd),20);
