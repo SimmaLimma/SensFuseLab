@@ -25,7 +25,6 @@ if(type == 'tdoa2')
     % Var for location estimation at each time instance
     estimation = zeros(2,88);
     
-    
     % Using TDOA2 Pairwise approach (i.e. tdoa2)
     for tp = 1:length(rphatPair)
         tp
@@ -33,7 +32,7 @@ if(type == 'tdoa2')
         %Momentanues Sig object
         tmpSig = sig(rphatPair(tp,:));
         
-        %Estmation (NLS) and update estimated sensmordel
+        %Estmation (NLS) and update estimated sensormodel
         shat = estimate(sm, tmpSig);
         sm.x0 = shat.x0;
         
@@ -66,7 +65,7 @@ if(type == 'nlsGn')
     for tp = 1:length(rphat)
         tp
         
-        % TODO: Find a way to call samples from SigObj
+      
         %Momentanues Sig object
         tmpSig = sig(e(tp,:));
         
