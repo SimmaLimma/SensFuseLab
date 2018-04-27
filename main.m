@@ -1,5 +1,5 @@
-%% General TODO:s
-% Check if comments refer to range and not time
+%% Lab in sensor fusion
+% By Simon Mårtensson and Axel Nyström
 
 %% Init
 clear all
@@ -307,7 +307,6 @@ mCtcvNl.x0 = [startPos; 0; 0; 0];
 mCtcvNl.th = micPos2(:);
 
 % Tracking using EKF 
-rphatPairSig = sig(rphatPair);
 xhatCtcvEKF = ekf(mCtcvNl, rphatPairOneRefSig);
 
 % Plotting result
@@ -321,3 +320,24 @@ title('Tracking with EKF and TOA (one ref) model, using CTCV model')
 
 
 %% Sensitivity analysis
+% Choosing method with tracking, using EKF, Pairwise TOA (one ref)
+% and CV2D motion model
+
+% Adding offsets to microphone positions
+offset = 0.1;
+micPos2Off = micPos2 + offset*(2*rand(2,8) - ones(2,8));
+
+% Reusing model, but with new mic positions
+mCvNl.th = micPos2Off(:);
+
+% Estimating new trajectory
+xhatCvEKFOff = ekf(mCvNl, rphatPairOneRefSig);
+
+% Plotting result
+figure(16)
+xplot2(xhatCvEKFOff)
+title('Comparison with random offset at mic pos')
+
+figure(17)
+SFlabCompEstimGroundTruth(xhatCvEKFOff.x(:,1:2)',micPos2Off)
+title('Random offset for mics')
