@@ -333,7 +333,7 @@ title('Tracking with EKF and TOA (one ref) model, using CTCV model')
 % and CV2D motion model
 
 % Adding offsets to microphone positions
-offset = 0.1;
+offset = 0.02;
 micPos2Off = micPos2 + offset*(2*rand(2,8) - ones(2,8));
 
 % Reusing model, but with new mic positions
